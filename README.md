@@ -1,136 +1,69 @@
-# REAPER Modular Project Engine
+# GPT Session Import Engine
 
-A modular Lua engine for REAPER that can **parse and recreate full project data** using only the official API.  
-Each feature is implemented as a separate module with a consistent `parse` / `write` API.  
-A central `integrator` orchestrates complete project migration, merging, and templating.
+A modular REAPER engine to automate intelligent project migration between session types — such as from a **Production** project into a **Mix Template** — preserving creative intent while keeping mix structure clean and intact.
 
 ---
 
-## ✅ Current Implementation Status
+## 🔍 Overview
 
-- ✅ **Project Info** → Sample rate and project-level settings
-- ✅ **Tempo & Time Signatures** → Full tempo map with markers
-- ✅ **Markers & Regions** → Complete support with GUIDs
-- ✅ **Tracks** → Properties, fixed lanes, names, envelopes, FX, routing
-- ✅ **Media Items** → Properties, fades, notes, crossfades
-- ✅ **Takes** → Properties, sources (audio/MIDI), FX, envelopes, active take state
-- ✅ **Stretch Markers** → Full per-take stretch marker parsing/writing
-- ✅ **Take Markers** → Per-take marker parsing/writing
-- ✅ **Track FX & Routing** → FX chain (with parameters), sends/receives
-- ✅ **Matching Module** → Exact-name track matching & merging
-- ✅ **Central Config** → Toggles for all modules + matching strategies
-- 🧹 **Logging** → All internal logs removed (silent operation)
+This engine reads a source REAPER project and imports selected session data (tracks, items, lanes, markers, FX, etc.) into a destination project, with full support for:
+
+- 🧠 Track name–based matching
+- 🎚 Lane and take structure preservation
+- 🎛 FX chains, take envelopes, MIDI and stretch markers
+- 🕹 Configurable import behavior via `config.lua`
+- 🔀 Hybrid merge + replace logic with track offset correction
 
 ---
 
-## 📁 File Structure
+## 📂 Project Structure
 
-```
-reaper_modular_engine/
-├── integrator.lua          # Orchestrates everything
-├── config.lua              # Central config (toggles + matching)
-├── matching.lua            # Track matching & merge logic
-├── project_info.lua        # Project settings
-├── tempo.lua               # Tempo & time signatures
-├── markers.lua             # Markers & regions
-├── tracks.lua              # Tracks (props, lanes, FX, routing, envelopes)
-├── items.lua               # Media items (fades, notes, crossfades)
-├── takes.lua               # Takes (sources, FX, envelopes)
-├── stretch_markers.lua     # Per‑take stretch markers
-├── take_markers.lua        # Per‑take markers
-└── usage_examples.lua      # Example usage patterns
-```
-
----
-
-## ⚙️ Central Config (`config.lua`)
-
-All writing is toggle-based. Parsing is always **ON**.
-
-Example (tracks section):
-
-```lua
-tracks = {
-  clear_existing_tracks   = true,   -- remove all tracks before writing
-  name                    = true,   -- track names
-  properties              = true,   -- volume, pan, mute, etc.
-  envelopes               = true,   -- track envelopes + automation items
-  fx                      = true,   -- FX chain with parameters
-  routing_parent_send     = true,   -- parent send flag
-  routing_sends           = true,   -- track sends
-}
-```
-
-### Matching Config
-
-```lua
-matching = {
-  exact_name = true,   -- match source/dest tracks by exact name
-  fuzzy_name = false,  -- (future) fuzzy/partial matching
-}
-```
+| Module              | Purpose                                                                 |
+|---------------------|-------------------------------------------------------------------------|
+| `gpt_integrator.lua`| Core orchestration: coordinates all phases of migration                |
+| `project_info.lua`  | Parses project metadata (name, path, etc.)                              |
+| `tracks.lua`        | Parses and writes track structure and metadata                          |
+| `items.lua`         | Handles media items + mapping                                           |
+| `takes.lua`         | Manages takes, FX, envelopes, sources (MIDI/audio)                      |
+| `stretch_markers.lua`| Applies stretch markers to target takes                                |
+| `take_markers.lua`  | Transfers per-take marker metadata                                       |
+| `tempo.lua`         | Transfers tempo map and time signatures                                 |
+| `markers.lua`       | Transfers project markers and regions                                   |
+| `matching.lua`      | Provides track matching plans                                           |
+| `log.lua`           | Modular logging system for better debugging                             |
+| `config.lua`        | Central config for import scope and behavior                            |
 
 ---
 
-## 🚀 Usage Examples
+## ✅ Supported Features
 
-### Complete Migration
-```lua
-local Engine = dofile("path/to/integrator.lua")
-local src = Engine.Integrator.find_project_by_path("/path/to/source.RPP")
-
--- migrate everything into current project
-Engine.Integrator.migrate_project(src, 0, {
-  clear_destination = true,
-})
-```
-
-### Selective Copy
-```lua
-local tempo = Engine.Tempo.parse(src)
-Engine.Tempo.write(0, tempo)
-
-local markers = Engine.Markers.parse(src)
-Engine.Markers.write(0, markers)
-```
-
-### Merge with Matching
-```lua
-local tracks_data = Engine.Tracks.parse(src)
-local plan = Engine.Match.build_plan(0, tracks_data, Engine.Config.matching)
-
-Engine.Tracks.write_with_match_plan(0, tracks_data, plan, {}, Engine.Config.tracks)
-```
+- 🎯 Precise per-track matching (name-based or full merge)
+- 🧱 Full lane and take preservation
+- 🎹 MIDI and audio content with stretch markers and envelopes
+- 💅 Take FX cloning and preset restoration
+- 📈 Configurable write strategy (replace, merge, or hybrid)
+- 🧩 Modular system: easy to extend and customize
 
 ---
 
-## 🎯 Use Cases
+## 🚀 Usage
 
-1. **Full migration** → move everything between tabs
-2. **Template creation** → preserve structure, strip media
-3. **Selective copy** → tempo only, markers only, etc.
-4. **Merge projects** → integrate production into mix templates
-5. **Automation migration** → preserve envelopes & automation items
-6. **Track FX migration** → including 3rd party plugin parameters
+Place the engine scripts inside:
+/User/…/REAPER Media/User/Scripts/BitSound/GPT Session Import/
+
+Then call `gpt_migration.lua` or your orchestrator script.
 
 ---
 
-## ⚠️ Known Limitations
+## 🧠 Notes
 
-1. **Multi‑take write** – parsing is complete, but writing currently prioritizes active take (expansion planned).  
-2. **Matching** – only exact name match implemented (fuzzy/regex to come).  
-3. **Some 3rd‑party FX** – presets/parameters may need plugin‑specific patches.  
-
----
-
-## 📝 Development Notes
-
-- **Modules are standalone** → each can be tested independently.  
-- **Integrator is logic‑light** → only coordinates modules.  
-- **Config‑driven** → writing behavior controlled centrally.  
-- **Silent by default** → debug prints removed.  
+- Existing unmatched tracks in the destination are preserved and accounted for with offset-corrected mappings.
+- Source take FX and envelopes are cloned when possible.
+- Advanced logging output via `log.lua` for better traceability.
 
 ---
 
-**Status:** Production‑ready for project migration, templating, and track merging.  
-Future work: multi‑take writing, advanced matching strategies, plugin‑specific FX patches.
+## 🛠 Developed By
+
+BitSound Studio — Carlos Ferreira & ChatGPT  
+Open modular architecture for REAPER workflow automation.
